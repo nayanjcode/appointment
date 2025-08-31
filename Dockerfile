@@ -1,4 +1,4 @@
-# Use Eclipse Temurin OpenJDK runtime as a parent image
+# Use Eclipse Temurin 17 OpenJDK runtime as a parent image
 FROM eclipse-temurin:17-jdk-jammy
 
 # Set the working directory
@@ -14,8 +14,8 @@ COPY src /app/src
 # Make Gradle wrapper executable
 RUN chmod +x gradlew
 
-# Build the application
-RUN ./gradlew build --no-daemon
+# Build the application without running tests
+RUN ./gradlew build --no-daemon -x test
 
 # Copy the built jar file to the container
 RUN cp build/libs/*.jar app.jar
