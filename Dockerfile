@@ -17,8 +17,8 @@ RUN chmod +x gradlew
 # Build the application without running tests
 RUN ./gradlew build --no-daemon -x test
 
-# Copy the built jar file to the container
-RUN cp build/libs/*.jar app.jar
+# Move the built jar file to app.jar (handle wildcard correctly)
+RUN sh -c 'cp $(ls build/libs/*.jar | head -n 1) app.jar'
 
 # Expose port 8080
 EXPOSE 8080
