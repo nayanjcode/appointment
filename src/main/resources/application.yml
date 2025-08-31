@@ -7,11 +7,18 @@ spring:
   application:
     name: appointmentservice
 
-  # database configs
+  # database configs local
+#  datasource:
+#    url: jdbc:mysql://localhost:3306/Appointment
+#    username: allego
+#    password: allego
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  ## configurable common datasource
   datasource:
-    url: jdbc:mysql://localhost:3306/Appointment
-    username: allego
-    password: allego
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?sslMode=REQUIRED
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # jpa properties
@@ -23,3 +30,7 @@ spring:
       hibernate:
         # To give the table name and column names as variable name by default. It was taking some other defaults
         physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+
+# Optional: Spring profile can be controlled by an env var too
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:default}
