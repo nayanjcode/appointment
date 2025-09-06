@@ -8,12 +8,12 @@ import com.nayan.appointment.entity.AppointmentStatus;
 import com.nayan.appointment.entity.Company;
 import com.nayan.appointment.entity.CompanyAppointmentService;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public interface AppointmentService
 {
-	List<GetAppointmentResponse> getAppointments(Long companyId, GetAppointmentRequest.ApointmentFilter filter);
+	List<GetAppointmentResponse> getAppointments(GetAppointmentRequest request);
 
 	List<Appointment> saveAppointment(CreateAppointmentRequest appointment);
 
@@ -27,5 +27,5 @@ public interface AppointmentService
 
 	List<Company> getAllCompanyDetails();
 
-	LocalDateTime getNextAppointmentTime(Long companyId, int epoch);
+	Instant getNextAppointmentTime(Long companyId, int epoch);
 }

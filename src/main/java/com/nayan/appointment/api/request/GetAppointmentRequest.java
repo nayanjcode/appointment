@@ -20,6 +20,7 @@ public class GetAppointmentRequest
 	Long companyId;
 	ApointmentFilter filter;
 //	AppointmentSort sort;
+	Integer tzOffset;
 
 	@Getter
 	@Setter

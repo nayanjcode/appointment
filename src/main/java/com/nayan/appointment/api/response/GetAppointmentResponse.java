@@ -11,7 +11,4 @@ public class GetAppointmentResponse
 {
 	Appointment appointment;
 	User customerDetails;
-
-	// Epoch time in milliseconds for frontend timezone conversion
-	private Long epochMillis;
 }

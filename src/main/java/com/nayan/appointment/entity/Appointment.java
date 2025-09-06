@@ -5,6 +5,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,7 +14,6 @@ import lombok.Setter;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Entity
 @Table
@@ -31,11 +31,11 @@ public class Appointment
 	Long serviceId;
 	Long customerId;
 	int statusId;
-	LocalDateTime appointmentDate;
-	LocalDateTime createDate;
+	Instant appointmentDate;
+	Instant createDate;
 	@UpdateTimestamp
-	LocalDateTime updateDate;
+	Instant updateDate;
 
-	// Epoch time in milliseconds for frontend timezone conversion
-	private Long epochMillis;
+	@Transient
+	long epochMillis;
 }

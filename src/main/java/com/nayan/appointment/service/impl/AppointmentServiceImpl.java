@@ -18,11 +18,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,12 +47,20 @@ public class AppointmentServiceImpl implements AppointmentService
 	private CompanyRespository companyRepository;
 
 	@Override
-	public List<GetAppointmentResponse> getAppointments(final Long companyId, final GetAppointmentRequest.ApointmentFilter filter)
+	public List<GetAppointmentResponse> getAppointments(final GetAppointmentRequest request)
 	{
-		final LocalDateTime startOfDay = filter.getDate().atStartOfDay();
-		final LocalDateTime endOfDay = filter.getDate().atTime(LocalTime.MAX);
+		final Long companyId = request.getCompanyId();
+		final GetAppointmentRequest.ApointmentFilter filter = request.getFilter();
+
+		int tzOffset = -request.getTzOffset();
+		final ZoneOffset offset = ZoneOffset.ofTotalSeconds(tzOffset);
+		// Current date in that offset
+		final LocalDate today = filter.getDate();
+		// Start of day in that offset
+		final Instant startOfDay = today.atStartOfDay().toInstant(offset);
+		final Instant endOfDay = today.atTime(LocalTime.MAX).toInstant(offset);
 		final List<Integer> status = filter.getStatus() != null && !filter.getStatus().isEmpty() ? filter.getStatus() : List.of(AppointmentStatus.APPOINTMENT_STATUS_PENDING, AppointmentStatus.APPOINTMENT_STATUS_IN_PROGRESS, AppointmentStatus.APPOINTMENT_STATUS_CONFIRM);
-		List<Appointment> appointmentList = appointmentRepo.getAppointments(companyId, startOfDay, endOfDay, status);
+		final List<Appointment> appointmentList = appointmentRepo.getAppointments(companyId, startOfDay, endOfDay, status);
 		List<GetAppointmentResponse> appointmentResponses = new ArrayList<>();
 		if (appointmentList != null)
 		{
@@ -67,9 +75,9 @@ public class AppointmentServiceImpl implements AppointmentService
 			}
 		}
 		appointmentResponses.sort((a, b) -> {
-			LocalDateTime aDate = a.getAppointment().getAppointmentDate();
-			LocalDateTime bDate = b.getAppointment().getAppointmentDate();
-			if (aDate.isEqual(bDate))
+			Instant aDate = a.getAppointment().getAppointmentDate();
+			Instant bDate = b.getAppointment().getAppointmentDate();
+			if (aDate.equals(bDate))
 			{
 				return 0;
 			} else if (aDate.isAfter(bDate))
@@ -109,14 +117,14 @@ public class AppointmentServiceImpl implements AppointmentService
 						.emailId(appointment.getEmail())
 						.firstName(appointment.getCustomerFirstName())
 						.lastName(appointment.getCustomerLastName())
-						.createDate(LocalDateTime.now())
+						.createDate(Instant.now())
 						.build()
 		));
 		// save appointment
 		final List<Appointment> createdAppointments = new ArrayList<>();
 		for (Long serviceId : appointment.getServiceIds())
 		{
-			LocalDateTime appointmentDateTime = getNextAppointmentTime(appointment.getCompanyId(), appointment.getTzOffset());
+			Instant appointmentDateTime = getNextAppointmentTime(appointment.getCompanyId(), appointment.getTzOffset());
 			Appointment appointmentToSave = Appointment.builder()
 					.companyId(appointment.getCompanyId())
 					.customerId(user.getUserId())
@@ -124,7 +132,7 @@ public class AppointmentServiceImpl implements AppointmentService
 //						.appointmentDate(LocalDateTime.parse(appointment.getAppointmentDateTime()))
 					.serviceId(serviceId)
 					.statusId(AppointmentStatus.APPOINTMENT_STATUS_PENDING)
-					.createDate(LocalDateTime.now())
+					.createDate(Instant.now())
 					.build();
 			Appointment savedAppointment = appointmentRepo.saveAndFlush(appointmentToSave);
 			createdAppointments.add(savedAppointment);
@@ -167,20 +175,20 @@ public class AppointmentServiceImpl implements AppointmentService
 	}
 
 	@Override
-	public LocalDateTime getNextAppointmentTime(Long companyId, int tzOffset)
+	public Instant getNextAppointmentTime(Long companyId, int tzOffset)
 	{
 		// Suppose you have timezone offset in minutes, e.g., +330 for IST
-		int offsetMinutes = 330;
+//		int tzOffset = 330;
 		ZoneOffset offset = ZoneOffset.ofTotalSeconds(tzOffset);
 
 		// Current date in that offset
 		LocalDate today = LocalDate.now(offset);
 
 		// Start of day in that offset
-		LocalDateTime startOfDay = today.atStartOfDay().atOffset(offset).toLocalDateTime();
+		Instant startOfDay = today.atStartOfDay().toInstant(offset);
 
 		// End of day in that offset
-		LocalDateTime endOfDay = today.atTime(LocalTime.MAX).atOffset(offset).toLocalDateTime();
+		Instant endOfDay = today.atTime(LocalTime.MAX).toInstant(offset);
 
 		List<Integer> excludedStatuses = List.of(AppointmentStatus.APPOINTMENT_STATUS_CANCELLED, AppointmentStatus.APPOINTMENT_STATUS_COMPLETED);
 		Optional<Appointment> latestAppointmentOpt = appointmentRepo.findTopByCompanyIdAndStatusIdNotInAndAppointmentDateBetweenOrderByAppointmentDateDesc(companyId, excludedStatuses, startOfDay, endOfDay);
@@ -191,26 +199,31 @@ public class AppointmentServiceImpl implements AppointmentService
 			CompanyAppointmentService service = serviceInfoRepository.findById(latest.getServiceId())
 					.orElseThrow(() -> new RuntimeException("Service not found"));
 
-			LocalDateTime nextSlot = latest.getAppointmentDate()
-					.plusMinutes(service.getServiceDuration());
+			Instant nextSlot = latest.getAppointmentDate()
+					.plus(service.getServiceDuration(), ChronoUnit.MINUTES);
 			return roundUpToNearest5Minutes(nextSlot);
 		} else
 		{
-			return roundUpToNearest5Minutes(LocalDateTime.now());
+			return roundUpToNearest5Minutes(Instant.now());
 		}
 	}
 
-	private LocalDateTime roundUpToNearest5Minutes(LocalDateTime time)
+	private Instant roundUpToNearest5Minutes(Instant time)
 	{
-		int minute = time.getMinute();
+		// Convert to ZonedDateTime in desired zone
+		ZonedDateTime zdt = time.atZone(ZoneOffset.UTC);
+
+		int minute = zdt.getMinute();
 		int remainder = minute % 5;
-		if (remainder == 0)
-		{
-			return time.truncatedTo(ChronoUnit.MINUTES);
-		} else
-		{
-			return time.plusMinutes(5 - remainder).truncatedTo(ChronoUnit.MINUTES);
+		if (remainder != 0) {
+			// Add the missing minutes to reach the next multiple of 5
+			zdt = zdt.plusMinutes(5 - remainder);
 		}
+
+		// Truncate smaller units (seconds, nanos)
+		zdt = zdt.truncatedTo(ChronoUnit.MINUTES);
+
+		return zdt.toInstant();
 	}
 
 

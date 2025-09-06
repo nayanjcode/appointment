@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,14 +20,14 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long>
 			             a.appointmentDate BETWEEN :startOfDay AND :endOfDay AND
 			             a.statusId IN :status
 			""")
-	List<Appointment> getAppointments(@Param("companyId") long companyId, @Param("startOfDay") LocalDateTime startOfDay,
-	                                  @Param("endOfDay") LocalDateTime endOfDay, @Param("status") List<Integer> status);
+	List<Appointment> getAppointments(@Param("companyId") long companyId, @Param("startOfDay") Instant startOfDay,
+	                                  @Param("endOfDay") Instant endOfDay, @Param("status") List<Integer> status);
 
 
 	@Modifying
 	@Query("UPDATE Appointment a SET a.statusId = :status WHERE a.appointmentId = :appointmentId")
 	void updateAppointmentStatus(@Param("appointmentId") Long appointmentId, @Param("status") int status);
 
-	Optional<Appointment> findTopByCompanyIdAndStatusIdNotInAndAppointmentDateBetweenOrderByAppointmentDateDesc(Long companyId, List<Integer> statusId, LocalDateTime startOfDay, LocalDateTime endOfDay);
+	Optional<Appointment> findTopByCompanyIdAndStatusIdNotInAndAppointmentDateBetweenOrderByAppointmentDateDesc(Long companyId, List<Integer> statusId, Instant startOfDay, Instant endOfDay);
 
 }

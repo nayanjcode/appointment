@@ -19,8 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -33,11 +32,11 @@ public class AppointmentController
 	@PostMapping("/getAppointments")
 	public ResponseEntity<List<GetAppointmentResponse>> getAppointments(@RequestBody GetAppointmentRequest appointmentRequest)
 	{
-		final List<GetAppointmentResponse> appointments = appointmentService.getAppointments(appointmentRequest.getCompanyId(), appointmentRequest.getFilter());
+		final List<GetAppointmentResponse> appointments = appointmentService.getAppointments(appointmentRequest);
 		// Convert appointment times to epoch milliseconds
 		appointments.forEach(a -> {
 			if (a.getAppointment() != null && a.getAppointment().getAppointmentDate() != null) {
-				long epochMillis = a.getAppointment().getAppointmentDate().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+				long epochMillis = a.getAppointment().getAppointmentDate().toEpochMilli();
 				a.getAppointment().setEpochMillis(epochMillis);
 			}
 		});
@@ -51,8 +50,7 @@ public class AppointmentController
 		// Convert appointment times to epoch milliseconds
 		updatedAppointments.forEach(a -> {
 			if (a.getAppointmentDate() != null) {
-				long epochMillis = a.getAppointmentDate().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-				a.setEpochMillis(epochMillis);
+				a.setEpochMillis(a.getAppointmentDate().toEpochMilli());
 			}
 		});
 		return ResponseEntity.status(HttpStatus.CREATED).body(updatedAppointments);
@@ -96,8 +94,8 @@ public class AppointmentController
 	@GetMapping("/findNextAppointmentTime")
 	public ResponseEntity<Long> getNextAppointmentTime(@RequestParam("companyId") Long companyId, @RequestParam("tzOffset") Integer tzOffset)
 	{
-		LocalDateTime nextAppointmentSlot = appointmentService.getNextAppointmentTime(companyId, tzOffset);
-		long epochMillis = nextAppointmentSlot.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+		Instant nextAppointmentSlot = appointmentService.getNextAppointmentTime(companyId, tzOffset);
+		long epochMillis = nextAppointmentSlot.toEpochMilli();
 		return ResponseEntity.ok(epochMillis);
 	}
 }

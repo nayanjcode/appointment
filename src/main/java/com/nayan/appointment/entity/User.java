@@ -30,8 +30,8 @@ public class User
 	private String lastName;
 	private String contactNumber;
 	private String emailId;
-	private LocalDateTime createDate;
+	private Instant createDate;
 	@UpdateTimestamp
-	private LocalDateTime updateDate;
+	private Instant updateDate;
 	private Long companyId;
 }
