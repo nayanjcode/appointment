@@ -57,8 +57,8 @@ public class AppointmentServiceImpl implements AppointmentService
 		// Current date in that offset
 		final LocalDate today = filter.getDate();
 		// Start of day in that offset
-		final Instant startOfDay = today.atStartOfDay().toInstant(offset);
-		final Instant endOfDay = today.atTime(LocalTime.MAX).toInstant(offset);
+		final Instant startOfDay = today.atStartOfDay().atOffset(offset).toInstant();
+		final Instant endOfDay = today.atTime(LocalTime.MAX).atOffset(offset).toInstant();
 		final List<Integer> status = filter.getStatus() != null && !filter.getStatus().isEmpty() ? filter.getStatus() : List.of(AppointmentStatus.APPOINTMENT_STATUS_PENDING, AppointmentStatus.APPOINTMENT_STATUS_IN_PROGRESS, AppointmentStatus.APPOINTMENT_STATUS_CONFIRM);
 		final List<Appointment> appointmentList = appointmentRepo.getAppointments(companyId, startOfDay, endOfDay, status);
 		List<GetAppointmentResponse> appointmentResponses = new ArrayList<>();
@@ -185,14 +185,15 @@ public class AppointmentServiceImpl implements AppointmentService
 		LocalDate today = LocalDate.now(offset);
 
 		// Start of day in that offset
-		Instant startOfDay = today.atStartOfDay().toInstant(offset);
+		Instant startOfDay = today.atStartOfDay().atOffset(offset).toInstant();
 
 		// End of day in that offset
-		Instant endOfDay = today.atTime(LocalTime.MAX).toInstant(offset);
+		Instant endOfDay = today.atTime(LocalTime.MAX).atOffset(offset).toInstant();
 
 		List<Integer> excludedStatuses = List.of(AppointmentStatus.APPOINTMENT_STATUS_CANCELLED, AppointmentStatus.APPOINTMENT_STATUS_COMPLETED);
 		Optional<Appointment> latestAppointmentOpt = appointmentRepo.findTopByCompanyIdAndStatusIdNotInAndAppointmentDateBetweenOrderByAppointmentDateDesc(companyId, excludedStatuses, startOfDay, endOfDay);
 
+		Instant nextBookingAsIfNothingBooked = roundUpToNearest5Minutes(Instant.now());
 		if (latestAppointmentOpt.isPresent())
 		{
 			Appointment latest = latestAppointmentOpt.get();
@@ -201,10 +202,15 @@ public class AppointmentServiceImpl implements AppointmentService
 
 			Instant nextSlot = latest.getAppointmentDate()
 					.plus(service.getServiceDuration(), ChronoUnit.MINUTES);
-			return roundUpToNearest5Minutes(nextSlot);
+			if (nextBookingAsIfNothingBooked.isAfter(nextSlot))
+			{
+				return nextBookingAsIfNothingBooked;
+			} else {
+				return roundUpToNearest5Minutes(nextSlot);
+			}
 		} else
 		{
-			return roundUpToNearest5Minutes(Instant.now());
+			return nextBookingAsIfNothingBooked;
 		}
 	}
 
