@@ -27,6 +27,7 @@ public class GetAppointmentRequest
 	{
 		@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
 		LocalDate date;
+		long epochTime;
 		List<Integer> status;
 		List<Integer> serviceId;
 	}

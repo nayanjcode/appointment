@@ -21,11 +21,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class AppointmentServiceImpl implements AppointmentService
@@ -115,7 +116,7 @@ public class AppointmentServiceImpl implements AppointmentService
 		final List<Appointment> createdAppointments = new ArrayList<>();
 		for (Long serviceId : appointment.getServiceIds())
 		{
-			LocalDateTime appointmentDateTime = getNextAppointmentTime(appointment.getCompanyId());
+			LocalDateTime appointmentDateTime = getNextAppointmentTime(appointment.getCompanyId(), appointment.getTzOffset());
 			Appointment appointmentToSave = Appointment.builder()
 					.companyId(appointment.getCompanyId())
 					.customerId(user.getUserId())
@@ -166,11 +167,20 @@ public class AppointmentServiceImpl implements AppointmentService
 	}
 
 	@Override
-	public LocalDateTime getNextAppointmentTime(Long companyId)
+	public LocalDateTime getNextAppointmentTime(Long companyId, int tzOffset)
 	{
-		LocalDate today = LocalDate.now();
-		LocalDateTime startOfDay = today.atStartOfDay();
-		LocalDateTime endOfDay = today.atTime(LocalTime.MAX);
+		// Suppose you have timezone offset in minutes, e.g., +330 for IST
+		int offsetMinutes = 330;
+		ZoneOffset offset = ZoneOffset.ofTotalSeconds(tzOffset);
+
+		// Current date in that offset
+		LocalDate today = LocalDate.now(offset);
+
+		// Start of day in that offset
+		LocalDateTime startOfDay = today.atStartOfDay().atOffset(offset).toLocalDateTime();
+
+		// End of day in that offset
+		LocalDateTime endOfDay = today.atTime(LocalTime.MAX).atOffset(offset).toLocalDateTime();
 
 		List<Integer> excludedStatuses = List.of(AppointmentStatus.APPOINTMENT_STATUS_CANCELLED, AppointmentStatus.APPOINTMENT_STATUS_COMPLETED);
 		Optional<Appointment> latestAppointmentOpt = appointmentRepo.findTopByCompanyIdAndStatusIdNotInAndAppointmentDateBetweenOrderByAppointmentDateDesc(companyId, excludedStatuses, startOfDay, endOfDay);

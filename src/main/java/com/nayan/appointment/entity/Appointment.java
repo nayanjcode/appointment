@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -34,4 +35,7 @@ public class Appointment
 	LocalDateTime createDate;
 	@UpdateTimestamp
 	LocalDateTime updateDate;
+
+	// Epoch time in milliseconds for frontend timezone conversion
+	private Long epochMillis;
 }

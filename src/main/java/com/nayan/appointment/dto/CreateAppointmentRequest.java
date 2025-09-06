@@ -14,4 +14,5 @@ public class CreateAppointmentRequest
 	private String customerLastName;
 	private String email;
 	private String phone;
+	private int tzOffset;
 }

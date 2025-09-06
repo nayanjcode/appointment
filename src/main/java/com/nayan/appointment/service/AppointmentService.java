@@ -27,5 +27,5 @@ public interface AppointmentService
 
 	List<Company> getAllCompanyDetails();
 
-	LocalDateTime getNextAppointmentTime(Long companyId);
+	LocalDateTime getNextAppointmentTime(Long companyId, int epoch);
 }
