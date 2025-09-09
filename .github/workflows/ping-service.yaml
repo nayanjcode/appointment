@@ -1,0 +1,15 @@
+# .github/workflows/ping-service.yml
+name: Keep Service Alive
+
+on:
+  schedule:
+    - cron: "*/25 * * * *"   # every 25 minutes (cron syntax: min hour day month weekday)
+  workflow_dispatch:          # allows manual run from GitHub Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call API
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" https://appointment-a29e.onrender.com/appointment/allStatusInfo?companyId=1
