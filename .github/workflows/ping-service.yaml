@@ -3,7 +3,7 @@ name: Keep Service Alive
 
 on:
   schedule:
-    - cron: "*/15 * * * *"   # every 15 minutes (cron syntax: min hour day month weekday)
+    - cron: "*/10 * * * *"   # every 10 minutes (cron syntax: min hour day month weekday)
   workflow_dispatch:          # allows manual run from GitHub Actions tab
 
 jobs:
