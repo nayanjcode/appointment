@@ -5,6 +5,7 @@ import com.nayan.appointment.api.response.GetAppointmentResponse;
 import com.nayan.appointment.dto.CreateAppointmentRequest;
 import com.nayan.appointment.entity.Appointment;
 import com.nayan.appointment.entity.AppointmentStatus;
+import com.nayan.appointment.entity.AppointmentStatusHistory;
 import com.nayan.appointment.entity.Company;
 import com.nayan.appointment.entity.CompanyAppointmentService;
 
@@ -18,6 +19,8 @@ public interface AppointmentService
 	List<Appointment> saveAppointment(CreateAppointmentRequest appointment);
 
 	void updateAppointmentStatus(Long appointmentId, int status);
+
+	AppointmentStatusHistory getLatestStatus(Long appointmentId);
 
 	List<AppointmentStatus> getAppointmentStatus(Long companyId);
 

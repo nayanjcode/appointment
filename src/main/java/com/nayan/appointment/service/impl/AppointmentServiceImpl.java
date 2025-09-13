@@ -5,10 +5,12 @@ import com.nayan.appointment.api.response.GetAppointmentResponse;
 import com.nayan.appointment.dto.CreateAppointmentRequest;
 import com.nayan.appointment.entity.Appointment;
 import com.nayan.appointment.entity.AppointmentStatus;
+import com.nayan.appointment.entity.AppointmentStatusHistory;
 import com.nayan.appointment.entity.Company;
 import com.nayan.appointment.entity.CompanyAppointmentService;
 import com.nayan.appointment.entity.User;
 import com.nayan.appointment.repository.AppointmentRepository;
+import com.nayan.appointment.repository.AppointmentStatusHistoryRepository;
 import com.nayan.appointment.repository.AppointmentStatusRepository;
 import com.nayan.appointment.repository.CompanyAppointmentServiceRepository;
 import com.nayan.appointment.repository.CompanyRespository;
@@ -46,6 +48,9 @@ public class AppointmentServiceImpl implements AppointmentService
 	@Autowired
 	private CompanyRespository companyRepository;
 
+	@Autowired
+	private AppointmentStatusHistoryRepository appointmentStatusHistoryRepository;
+
 	@Override
 	public List<GetAppointmentResponse> getAppointments(final GetAppointmentRequest request)
 	{
@@ -72,6 +77,8 @@ public class AppointmentServiceImpl implements AppointmentService
 								.appointment(appointment)
 								.customerDetails(user)
 								.build()));
+				appointment.setStatusHistoryList(appointment.getStatusHistoryList());
+//				appointment.setStatusHistoryList(List.of(getLatestStatus(appointment.getAppointmentId())));
 			}
 		}
 		appointmentResponses.sort((a, b) -> {
@@ -124,8 +131,8 @@ public class AppointmentServiceImpl implements AppointmentService
 		final List<Appointment> createdAppointments = new ArrayList<>();
 		for (Long serviceId : appointment.getServiceIds())
 		{
-			Instant appointmentDateTime = getNextAppointmentTime(appointment.getCompanyId(), appointment.getTzOffset());
-			Appointment appointmentToSave = Appointment.builder()
+			final Instant appointmentDateTime = getNextAppointmentTime(appointment.getCompanyId(), appointment.getTzOffset());
+			final Appointment appointmentToSave = Appointment.builder()
 					.companyId(appointment.getCompanyId())
 					.customerId(user.getUserId())
 					.appointmentDate(appointmentDateTime)
@@ -133,8 +140,19 @@ public class AppointmentServiceImpl implements AppointmentService
 					.serviceId(serviceId)
 					.statusId(AppointmentStatus.APPOINTMENT_STATUS_PENDING)
 					.createDate(Instant.now())
+					.statusHistoryList(List.of())
 					.build();
-			Appointment savedAppointment = appointmentRepo.saveAndFlush(appointmentToSave);
+
+			// add default pending status while creating appointment
+			final AppointmentStatusHistory defaultPendingStatus = AppointmentStatusHistory.builder()
+					.statusId(AppointmentStatus.APPOINTMENT_STATUS_PENDING)
+					.changedAt(Instant.now())
+					.appointment(appointmentToSave)
+					.build();
+			appointmentToSave.setStatusHistoryList(List.of(defaultPendingStatus));
+
+			// create appointment
+			final Appointment savedAppointment = appointmentRepo.saveAndFlush(appointmentToSave);
 			createdAppointments.add(savedAppointment);
 		}
 
@@ -147,13 +165,27 @@ public class AppointmentServiceImpl implements AppointmentService
 	{
 		if (!appointmentRepo.existsById(appointmentId))
 			throw new RuntimeException("Appointment you want to update does not exist");
-		appointmentRepo.updateAppointmentStatus(appointmentId, status);
+		final Appointment appointment = appointmentRepo.getReferenceById(appointmentId);
+
+		final AppointmentStatusHistory history = new AppointmentStatusHistory();
+		history.setStatusId(status);
+		history.setChangedAt(Instant.now());
+		history.setAppointment(appointment);
+
+		appointmentStatusHistoryRepository.save(history);
+//		appointmentRepo.updateAppointmentStatus(appointmentId, status);
 	}
 
 	@Override
 	public List<AppointmentStatus> getAppointmentStatus(Long companyId)
 	{
 		return appointmentStatusRepository.findAppointmentStatusByCompanyId(companyId);
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public AppointmentStatusHistory getLatestStatus(Long appointmentId) {
+		return appointmentStatusHistoryRepository.findTopByAppointmentAppointmentIdOrderByChangedAtDesc(appointmentId);
 	}
 
 	@Override
