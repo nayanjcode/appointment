@@ -17,6 +17,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.Comparator;
 
 @Entity
 @Table
@@ -42,4 +43,22 @@ public class AppointmentStatusHistory
 	@JoinColumn(name = "appointmentId", nullable = false)
 	@JsonIgnore
 	private Appointment appointment;
+
+
+	public static final Comparator<AppointmentStatusHistory> BY_STATUS_HIST_LATEST_DATE =
+			(a, b) -> {
+				Instant aDate = a.getChangedAt();
+				Instant bDate = b.getChangedAt();
+
+				if (aDate.equals(bDate))
+				{
+					return 0;
+				} else if (aDate.isAfter(bDate))
+				{
+					return -1; // latest first
+				} else
+				{
+					return 1;
+				}
+			};
 }

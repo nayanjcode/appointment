@@ -66,36 +66,32 @@ public class AppointmentServiceImpl implements AppointmentService
 		final Instant startOfDay = today.atStartOfDay().atOffset(offset).toInstant();
 		final Instant endOfDay = today.atTime(LocalTime.MAX).atOffset(offset).toInstant();
 		final List<Integer> status = filter.getStatus() != null && !filter.getStatus().isEmpty() ? filter.getStatus() : List.of(AppointmentStatus.APPOINTMENT_STATUS_PENDING, AppointmentStatus.APPOINTMENT_STATUS_IN_PROGRESS, AppointmentStatus.APPOINTMENT_STATUS_CONFIRM);
-		final List<Appointment> appointmentList = appointmentRepo.getAppointments(companyId, startOfDay, endOfDay, status);
+		final List<Appointment> appointmentList = appointmentRepo.getAppointments(companyId, startOfDay, endOfDay);
 		List<GetAppointmentResponse> appointmentResponses = new ArrayList<>();
 		if (appointmentList != null)
 		{
 			for (Appointment appointment : appointmentList)
 			{
-				Optional<User> userOpt = userRepository.findById(appointment.getCustomerId());
-				userOpt.ifPresent(user -> appointmentResponses.add(
-						GetAppointmentResponse.builder()
-								.appointment(appointment)
-								.customerDetails(user)
-								.build()));
+				final Optional<User> userOpt = userRepository.findById(appointment.getCustomerId());
+				if (status.contains(getLatestStatus(appointment.getAppointmentId()).getStatusId()) && userOpt.isPresent())
+				{
+					final User user = userOpt.get();
+					appointmentResponses.add(
+							GetAppointmentResponse.builder()
+									.appointment(appointment)
+									.customerDetails(user)
+									.build());
+				}
+//				userOpt.ifPresent(user -> appointmentResponses.add(
+//						GetAppointmentResponse.builder()
+//								.appointment(appointment)
+//								.customerDetails(user)
+//								.build()));
 				appointment.setStatusHistoryList(appointment.getStatusHistoryList().stream().map(sHist -> {sHist.setChangedAtEpoch(sHist.getChangedAt().toEpochMilli()); return sHist;}).collect(Collectors.toList()));
 //				appointment.setStatusHistoryList(List.of(getLatestStatus(appointment.getAppointmentId())));
 			}
 		}
-		appointmentResponses.sort((a, b) -> {
-			Instant aDate = a.getAppointment().getAppointmentDate();
-			Instant bDate = b.getAppointment().getAppointmentDate();
-			if (aDate.equals(bDate))
-			{
-				return 0;
-			} else if (aDate.isAfter(bDate))
-			{
-				return -1;
-			} else
-			{
-				return 1;
-			}
-		});
+		appointmentResponses.sort(GetAppointmentResponse.BY_APPOINTMENT_DATE_DESC);
 		return appointmentResponses;
 	}
 
@@ -224,12 +220,13 @@ public class AppointmentServiceImpl implements AppointmentService
 		Instant endOfDay = today.atTime(LocalTime.MAX).atOffset(offset).toInstant();
 
 		List<Integer> excludedStatuses = List.of(AppointmentStatus.APPOINTMENT_STATUS_CANCELLED, AppointmentStatus.APPOINTMENT_STATUS_COMPLETED);
-		Optional<Appointment> latestAppointmentOpt = appointmentRepo.findTopByCompanyIdAndStatusIdNotInAndAppointmentDateBetweenOrderByAppointmentDateDesc(companyId, excludedStatuses, startOfDay, endOfDay);
+		List<Appointment> todayAppointments = appointmentRepo.findByCompanyIdAndAppointmentDateBetweenOrderByAppointmentDateDesc(companyId, startOfDay, endOfDay);
+		List<Appointment> latestAppointments = todayAppointments.stream().filter(a -> !excludedStatuses.contains(getLatestStatus(a.getAppointmentId()).getStatusId())).collect(Collectors.toList());
 
 		Instant nextBookingAsIfNothingBooked = roundUpToNearest5Minutes(Instant.now());
-		if (latestAppointmentOpt.isPresent())
+		if (latestAppointments.size() > 0)
 		{
-			Appointment latest = latestAppointmentOpt.get();
+			Appointment latest = latestAppointments.get(0);
 			CompanyAppointmentService service = serviceInfoRepository.findById(latest.getServiceId())
 					.orElseThrow(() -> new RuntimeException("Service not found"));
 

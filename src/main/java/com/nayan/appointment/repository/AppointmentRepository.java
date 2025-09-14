@@ -17,17 +17,16 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long>
 	@Query("""
 			     SELECT a FROM Appointment a
 			         WHERE a.companyId = :companyId AND
-			             a.appointmentDate BETWEEN :startOfDay AND :endOfDay AND
-			             a.statusId IN :status
+			             a.appointmentDate BETWEEN :startOfDay AND :endOfDay
 			""")
 	List<Appointment> getAppointments(@Param("companyId") long companyId, @Param("startOfDay") Instant startOfDay,
-	                                  @Param("endOfDay") Instant endOfDay, @Param("status") List<Integer> status);
+	                                  @Param("endOfDay") Instant endOfDay);
 
 
-	@Modifying
-	@Query("UPDATE Appointment a SET a.statusId = :status WHERE a.appointmentId = :appointmentId")
-	void updateAppointmentStatus(@Param("appointmentId") Long appointmentId, @Param("status") int status);
+//	@Modifying
+//	@Query("UPDATE Appointment a SET a.statusId = :status WHERE a.appointmentId = :appointmentId")
+//	void updateAppointmentStatus(@Param("appointmentId") Long appointmentId, @Param("status") int status);
 
-	Optional<Appointment> findTopByCompanyIdAndStatusIdNotInAndAppointmentDateBetweenOrderByAppointmentDateDesc(Long companyId, List<Integer> statusId, Instant startOfDay, Instant endOfDay);
+	List<Appointment> findByCompanyIdAndAppointmentDateBetweenOrderByAppointmentDateDesc(Long companyId, Instant startOfDay, Instant endOfDay);
 
 }
