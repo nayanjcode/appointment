@@ -29,6 +29,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class AppointmentServiceImpl implements AppointmentService
@@ -77,7 +78,7 @@ public class AppointmentServiceImpl implements AppointmentService
 								.appointment(appointment)
 								.customerDetails(user)
 								.build()));
-				appointment.setStatusHistoryList(appointment.getStatusHistoryList());
+				appointment.setStatusHistoryList(appointment.getStatusHistoryList().stream().map(sHist -> {sHist.setChangedAtEpoch(sHist.getChangedAt().toEpochMilli()); return sHist;}).collect(Collectors.toList()));
 //				appointment.setStatusHistoryList(List.of(getLatestStatus(appointment.getAppointmentId())));
 			}
 		}

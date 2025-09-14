@@ -37,7 +37,7 @@ public class AppointmentController
 		appointments.forEach(a -> {
 			if (a.getAppointment() != null && a.getAppointment().getAppointmentDate() != null) {
 				long epochMillis = a.getAppointment().getAppointmentDate().toEpochMilli();
-				a.getAppointment().setEpochMillis(epochMillis);
+				a.getAppointment().setAppointmentDateEpoch(epochMillis);
 			}
 		});
 		return ResponseEntity.ok(appointments);
@@ -50,7 +50,7 @@ public class AppointmentController
 		// Convert appointment times to epoch milliseconds
 		updatedAppointments.forEach(a -> {
 			if (a.getAppointmentDate() != null) {
-				a.setEpochMillis(a.getAppointmentDate().toEpochMilli());
+				a.setAppointmentDateEpoch(a.getAppointmentDate().toEpochMilli());
 			}
 		});
 		return ResponseEntity.status(HttpStatus.CREATED).body(updatedAppointments);

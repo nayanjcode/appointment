@@ -35,6 +35,7 @@ public class Appointment
 	Long companyId;
 	Long serviceId;
 	Long customerId;
+	@Transient
 	int statusId;
 	Instant appointmentDate;
 	Instant createDate;
@@ -47,5 +48,5 @@ public class Appointment
 	List<AppointmentStatusHistory> statusHistoryList = new ArrayList<>();
 
 	@Transient
-	long epochMillis;
+	long appointmentDateEpoch;
 }

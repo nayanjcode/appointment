@@ -1,5 +1,6 @@
 package com.nayan.appointment.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -8,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -33,7 +35,11 @@ public class AppointmentStatusHistory
 
 	private Instant changedAt;
 
+	@Transient
+	private long changedAtEpoch;
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "appointmentId", nullable = false)
+	@JsonIgnore
 	private Appointment appointment;
 }
