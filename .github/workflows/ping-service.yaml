@@ -12,4 +12,4 @@ jobs:
     steps:
       - name: Call API
         run: |
-          curl -s -o /dev/null -w "%{http_code}" https://appointment-a29e.onrender.com/appointment/allStatusInfo?companyId=1
+          curl -s -o /dev/null -w "%{http_code}" https://appointment-a29e.onrender.com/monitor/status
