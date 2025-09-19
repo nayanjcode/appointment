@@ -61,10 +61,10 @@ public class AppointmentServiceImpl implements AppointmentService
 		int tzOffset = -request.getTzOffset();
 		final ZoneOffset offset = ZoneOffset.ofTotalSeconds(tzOffset);
 		// Current date in that offset
-		final LocalDate today = filter.getDate();
+		final LocalDate date = filter.getDate();
 		// Start of day in that offset
-		final Instant startOfDay = today.atStartOfDay().atOffset(offset).toInstant();
-		final Instant endOfDay = today.atTime(LocalTime.MAX).atOffset(offset).toInstant();
+		final Instant startOfDay = date.atStartOfDay().atOffset(offset).toInstant();
+		final Instant endOfDay = date.atTime(LocalTime.MAX).atOffset(offset).toInstant();
 		final List<Integer> status = filter.getStatus() != null && !filter.getStatus().isEmpty() ? filter.getStatus() : List.of(AppointmentStatus.APPOINTMENT_STATUS_PENDING, AppointmentStatus.APPOINTMENT_STATUS_IN_PROGRESS, AppointmentStatus.APPOINTMENT_STATUS_CONFIRM);
 		final List<Appointment> appointmentList = appointmentRepo.getAppointments(companyId, startOfDay, endOfDay);
 		List<GetAppointmentResponse> appointmentResponses = new ArrayList<>();
@@ -73,7 +73,9 @@ public class AppointmentServiceImpl implements AppointmentService
 			for (Appointment appointment : appointmentList)
 			{
 				final Optional<User> userOpt = userRepository.findById(appointment.getCustomerId());
-				if (status.contains(getLatestStatus(appointment.getAppointmentId()).getStatusId()) && userOpt.isPresent())
+				AppointmentStatusHistory latestStatus = getLatestStatus(appointment.getAppointmentId());
+				appointment.setStatusId(latestStatus.getStatusId());
+				if (status.contains(latestStatus.getStatusId()) && userOpt.isPresent())
 				{
 					final User user = userOpt.get();
 					appointmentResponses.add(
